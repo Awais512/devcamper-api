@@ -3,7 +3,7 @@ const asyncHandler = require('../middleware/async');
 const User = require('../models/User');
 
 //@desc      Register User
-//@Route     GET /api/v1/auth/register
+//@Route     POST /api/v1/auth/register
 //@access    Public
 
 exports.register = asyncHandler(async (req, res, next) => {
@@ -16,6 +16,39 @@ exports.register = asyncHandler(async (req, res, next) => {
     password,
     role,
   });
+
+  //Create Token
+
+  const token = user.getSignedJwtToken();
+
+  res.status(200).json({ success: true, token });
+});
+
+//@desc      Login User
+//@Route     POST /api/v1/auth/login
+//@access    Private
+
+exports.login = asyncHandler(async (req, res, next) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return next(new ErrorResponse('Please Provide an email and password'), 400);
+  }
+
+  //Check for user
+  const user = await User.findOne({ email }).select('+password');
+
+  if (!user) {
+    return next(new ErrorResponse('Invalid Credentials'), 401);
+  }
+
+  //Check if password matches
+
+  const isMAtch = await user.matchPassword(password);
+
+  if (!isMAtch) {
+    return next(new ErrorResponse('Invalid Credentials'), 401);
+  }
 
   //Create Token
 
